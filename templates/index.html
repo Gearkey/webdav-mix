@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Webdav-mix Home</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="Shortcut icon" href=""/>
+<link rel="stylesheet" href="style.css"/>
+<style type="text/css">
+.wrap {
+    margin: 0 60px;
+}
+</style>
+</head>
+<body>
+<div class='wrap'>
+    <h1>Webdav-mix Home</h1>
+
+    <p>资源池列表：</p>
+    <ul>
+        {% for pool in pool_list %}
+        <li><a href='pool/{{ pool }}/'>{{ pool }}</li>
+        {% endfor %}
+    </ul>
+</div>
+</body>
+</html>

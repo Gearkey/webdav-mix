@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Webdav-mix：{{ pool_name }}</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="Shortcut icon" href=""/>
+<link rel="stylesheet" href="style.css"/>
+<style type="text/css">
+.wrap {
+    margin: 0 60px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <h1><a href="/pool/{{ pool_name }}">资源池：{{ pool_name }}</a></h1>
+    <p>文件列表：</p>
+    <ul>
+        {% for file in files %}
+        <li><a href="{{ file }}">{{ file }}</a></li>
+        {% endfor %}
+    </ul>
+    <form action="./" method="post">
+        <textarea name="upload" placeholder="在此输入文件地址列表"></textarea>
+        <p><input type="submit" value="上传"></p>
+    </form>
+    
+</div>
+</body>
