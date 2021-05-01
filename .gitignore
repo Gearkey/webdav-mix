@@ -1,2 +1,4 @@
+__pycache__
 download/*
-pool-*.ini
+pool_list/pool-*.ini
+test.py
