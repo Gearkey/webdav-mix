@@ -23,10 +23,7 @@ def pool_web(pool_name, path=''):
     # 上传文件
     if request.method == 'POST':
         upload_files = request.form.get('upload').split()
-
-        for upload_file in upload_files:
-            file_name = os.path.split(upload_file)[1]
-            pool_0.upload(path+file_name, upload_file)
+        pool_0.upload(path, upload_files)
 
     # 下载文件
     if path == '':
