@@ -42,40 +42,53 @@ class Pool(object):
     def get_time(self):
         return datetime.now().strftime('%Y%m%d_%H%M%S')
 
+    # 获取文件编号（混合类型1）
+    def get_file_number(self, remote_path):
+        client = self.connect_server('disk-0')
+        client.download_sync(remote_path=remote_path, local_path='temp/temp.txt')
+
+        with open('temp/temp.txt', 'r') as f:
+            content = f.read()
+            download_client_name = os.path.split(content)[0]
+            file_number = os.path.split(content)[1]
+        
+        return download_client_name, file_number
+
     # 列举文件
     def list_files(self, path):
-        # 资源池类型0：直接展示 disk-0 的文件结构
-        # if self.mix_type == '0':
         client = self.connect_server('disk-0')
         files = client.list(path)
-        
-        # 其他
-        # else: pass
 
         if self.get_disk_type('disk-0') == 'jianguo': del files[0]  # 坚果云会多一个标题
         return files
 
     # 上传文件到路径
     def upload(self, remote_path, upload_files):
-        # 资源池类型0：直接上传到 disk-0
+        ## 资源池类型0：直接上传到 disk-0
         if self.mix_type == '0':
             client = self.connect_server('disk-0')
             for upload_file in upload_files:
                 file_name = os.path.split(upload_file)[1]
                 client.upload_sync(remote_path=remote_path+file_name, local_path=upload_file)
         
-        # 资源池类型1：上传到目标磁盘后在 disk-0 建立文件结构
+        ## 资源池类型1：上传到目标磁盘后在 disk-0 建立文件结构
         elif self.mix_type == '1':
             client = self.connect_server('disk-0')
-            target_client = self.connect_server(self.target_disk)
             
             i = 0
             for upload_file in upload_files:
-                file_number = self.get_time()+'_'+str(i)
-                target_client.upload_sync(remote_path=file_number, local_path=upload_file)
-                
                 file_name = os.path.split(upload_file)[1]
                 remote_path = remote_path+file_name
+                
+                ### 如果文件已存在，直接以原编码覆盖，否则获取时间戳作为编码上传
+                if client.check(remote_path):
+                    download_client_name, file_number = self.get_file_number(remote_path)
+                    self.target_disk = download_client_name
+                else:
+                    file_number = self.get_time()+'_'+str(i)
+
+                target_client = self.connect_server(self.target_disk)
+                target_client.upload_sync(remote_path=file_number, local_path=upload_file)
 
                 with open('temp/temp.txt', 'w') as f:
                     f.write(self.target_disk + '/' + file_number)
@@ -88,27 +101,22 @@ class Pool(object):
         #     client = self.connect_server('disk-0')
         #     client.upload_sync(remote_path=remote_path, local_path=local_path)
         
-        # 其他
+        ## 其他
         else: pass
     
     # 下载文件到 Download 目录
     def download(self, remote_path, local_path):
-        # 资源池类型0：直接下载 disk-0 的实际文件
+        ## 资源池类型0：直接下载 disk-0 的实际文件
         if self.mix_type == '0':
             client = self.connect_server('disk-0')
             client.download_sync(remote_path=remote_path, local_path=local_path)
         
-        # 资源池类型1：通过 disk-0 文件指向的目标磁盘，下载文件
+        ## 资源池类型1：通过 disk-0 文件指向的目标磁盘，下载文件
         elif self.mix_type == '1':
-            client = self.connect_server('disk-0')
-            client.download_sync(remote_path=remote_path, local_path='temp/temp.txt')
-            with open('temp/temp.txt', 'r') as f:
-                content = f.read()
-                download_client_name = os.path.split(content)[0]
-                file_name = os.path.split(content)[1]
+            download_client_name, file_number = self.get_file_number(remote_path)
         
             download_client = self.connect_server(download_client_name)
-            download_client.download_sync(remote_path=file_name, local_path=local_path)
+            download_client.download_sync(remote_path=file_number, local_path=local_path)
 
-        # 其他
+        ## 其他
         else: pass
