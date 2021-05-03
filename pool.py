@@ -21,13 +21,17 @@ class Pool(object):
         return config
     
     # 连接到指定磁盘
-    def connect_server(self, disk):
+    def connect_server(self, disk, hostname='', username='', password=''):
         config = self.get_config()
+
+        if hostname == '': hostname = config[disk]['hostname']
+        if username == '': username = config[disk]['username']
+        if password == '': password = config[disk]['password']
         
         options = {
-            'webdav_hostname': config[disk]['hostname'],
-            'webdav_login': config[disk]['username'],
-            'webdav_password': config[disk]['password'],
+            'webdav_hostname': hostname,
+            'webdav_login': username,
+            'webdav_password': password,
             'disable_check': True,
         }
         
@@ -53,6 +57,17 @@ class Pool(object):
             file_number = os.path.split(content)[1]
         
         return download_client_name, file_number
+
+    # 提取两段 url 相同的部分，并将它截出
+    def get_top_url(self, url1, url2):
+        i = 0
+        while url1[i] == url2[i]: i += 1
+        
+        top_url = os.path.split(url1[:i])[0]
+        url1 = url1[len(top_url):]
+        url2 = url2[len(top_url):]
+
+        return top_url, url1, url2
 
     # 列举文件
     def list_files(self, path):
@@ -96,11 +111,22 @@ class Pool(object):
                
                 i += 1
         
-        # 资源池类型2：先上传到 disk-1 的共享文件夹，然后在 disk-0 将其移动到正确位置
-        # elif self.mix_type == '2':
-        #     client = self.connect_server('disk-0')
-        #     client.upload_sync(remote_path=remote_path, local_path=local_path)
-        
+        ## 资源池类型2：先上传到目标磁盘，然后在 disk-0 将其移动到正确位置
+        elif self.mix_type == '2':
+            target_client = self.connect_server(self.target_disk)
+            for upload_file in upload_files:
+                file_name = os.path.split(upload_file)[1]
+                target_client.upload_sync(remote_path=remote_path+file_name, local_path=upload_file)
+            
+            top_url, path1, path2 = self.get_top_url(self.get_config()['disk-0']['hostname'], self.get_config()[self.target_disk]['share_url'])
+
+            client = self.connect_server('disk-0', hostname=top_url)
+            for upload_file in upload_files:
+                file_name = os.path.split(upload_file)[1]
+                path1 = path1 + file_name
+                path2 = path2 + file_name
+                client.move(remote_path_from=path2, remote_path_to=path1)
+
         ## 其他
         else: pass
     
@@ -117,6 +143,21 @@ class Pool(object):
         
             download_client = self.connect_server(download_client_name)
             download_client.download_sync(remote_path=file_number, local_path=local_path)
+
+        ## 资源池类型2：复制到中转磁盘并下载，之后删除缓存
+        elif self.mix_type == '2':
+            top_url, path1, path2 = self.get_top_url(self.get_config()['disk-0']['hostname'], self.get_config()[self.target_disk]['share_url'])
+            
+            client = self.connect_server('disk-0', hostname=top_url)
+
+            # for upload_file in upload_files:
+            file_name = os.path.split(remote_path)[1]
+            path1 = path1 + file_name
+            path2 = path2 + file_name
+            client.copy(remote_path_from=path1, remote_path_to=path2)
+
+            download_client = self.connect_server(self.target_disk)
+            download_client.download_sync(remote_path=file_name, local_path=local_path)
 
         ## 其他
         else: pass

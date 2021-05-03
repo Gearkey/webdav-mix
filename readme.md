@@ -16,6 +16,9 @@ target_disk = disk-1 #混合模式中实际上传文件的目标磁盘名称
 hostname = https://dav.jianguoyun.com/dav/ #目标地址
 username = xxx@qq.com #用户名
 password = 123456 #密码
+
+[disk-1]
+share_url = https://dav.jianguoyun.com/dav/ #本共享文件夹在 disk-0 中的位置
 ```
 
 更新日志：
